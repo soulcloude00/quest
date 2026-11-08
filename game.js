@@ -152,6 +152,14 @@ function cardCanvas(em, label, bg = '#fff6ec') {
   if (label) { g.font = `900 ${label.length > 9 ? 30 : 40}px "Trebuchet MS",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#1a2a4f'; g.fillText(label.toUpperCase(), 128, 212); }
   return cardCache[k] = c;
 }
+function golemRuneSprite(label, scale) { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = 'rgba(0,0,0,0.55)'; g.beginPath(); g.arc(128, 128, 122, 0, 7); g.fill();
+  g.shadowColor = '#7fe8ff'; g.shadowBlur = 28; g.beginPath(); g.moveTo(128, 14); g.lineTo(238, 128); g.lineTo(128, 242); g.lineTo(18, 128); g.closePath();
+  const gr = g.createLinearGradient(0, 14, 0, 242); gr.addColorStop(0, '#9fe6ff'); gr.addColorStop(1, '#1e6bff'); g.fillStyle = gr; g.fill(); g.shadowBlur = 0;
+  g.lineWidth = 12; g.strokeStyle = '#0a0f2a'; g.stroke(); g.lineWidth = 4; g.strokeStyle = '#ffffff'; g.stroke();
+  const t = String(label); g.font = `900 ${t.length > 3 ? 64 : 92}px Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#000'; g.strokeText(t, 128, 134); g.fillStyle = '#fff'; g.fillText(t, 128, 134);
+  const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, depthWrite: false, depthTest: false })); s.renderOrder = 10; s.scale.set(scale, scale, 1); return s; }
 function cardSprite(em, label, scale = 1.1, bg) { const t = new THREE.CanvasTexture(cardCanvas(em, label, bg)); t.colorSpace = THREE.SRGBColorSpace; const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); s.scale.set(scale, scale, 1); return s; }
 function cardImg(em, label, bg) { return `<img class="cimg" src="${cardCanvas(em, label, bg).toDataURL()}" alt="${label || ''}">`; }
 const TEXdraw = { brick: (g, s) => { g.fillStyle = '#7c8594'; g.fillRect(0, 0, s, s); g.fillStyle = '#5c6474'; for (let y = 0; y < s; y += 4) { g.fillRect(0, y, s, 1); const o = (y / 4) % 2 ? 4 : 0; for (let x = o; x < s; x += 8) g.fillRect(x, y, 1, 4); } } };
@@ -1671,17 +1679,17 @@ NEW.S1,
     const bar = document.createElement('div'); bar.id = 'bossBar'; bar.innerHTML = '<span id="bossName">👹 Shadow Golem · Phase 1/3</span><div class="bb"><i id="bossHp"></i></div>'; document.body.appendChild(bar);
     show('#hearts', true); this.hearts(L); this.placeRunes(L);
   },
-  cleanup(L) { const b = $('#bossBar'); if (b) b.remove(); },
+  cleanup(L) { const b = $('#bossBar'); if (b) b.remove(); const n = $('#golemNext'); if (n) n.remove(); },
   async start(L) {
     L.paused = true;
-    await modal(`<h2>How to beat the Golem 👹</h2><div class="howto">
+    await modal(`<h2>How to beat the Golem 👹</h2><p class="story-text" style="font-size:22px;font-weight:800;background:#fff3c4;color:#222;padding:10px 14px;border-radius:12px;border:3px solid #222">💡 Step on the 🔷 diamonds in order 1, 2, 3 (smallest number first). Collect the ⭐ stars and 🔥 fire, then defeat the Shadow Golem!</p><div class="howto">
       <div class="hstep"><div class="hart"><span class="big">🔷</span><span class="go">➜</span><span class="big">🛡️</span></div><b>1. Solve the runes</b><small>Step on them smallest ➜ biggest to break the shield</small></div>
       <div class="hstep"><div class="hart"><span class="hero">🧍</span><span class="go">➜</span><span class="big">🔥</span></div><b>2. Grab embers</b><small>3 hits per phase, 3 phases 💥</small></div>
       <div class="hstep"><div class="hart"><span class="mini-tile red"></span><span class="go">➜</span><span class="mini-tile"></span></div><b>3. Dodge!</b><small>Red tiles, waves, 👾 minions, falling-rock shadows</small></div>
     </div><p class="small">You have ❤️❤️❤️. Lose them all and you retry the SAME phase.</p><button class="btn primary huge" id="gGo">Got it - Start! ▶</button>`, (el, done) => el.querySelector('#gGo').onclick = done);
     L.paused = false; L.fightT = 0; L.atkT = 5; say('Phase 1! Step on the 🔷 runes from smallest to biggest to break the shield!', 5000);
   },
-  hearts(L) { $('#hearts').textContent = '❤️'.repeat(Math.max(0, L.hearts)) + '🖤'.repeat(3 - Math.max(0, L.hearts)); const h = $('#bossHp'); if (h) h.style.width = (100 * L.hp / 9) + '%'; const n = $('#bossName'); if (n) n.textContent = `👹 Shadow Golem · Phase ${L.phase}/3${L.shield ? ' · 🛡️' : ' · shield DOWN!'}`; },
+  hearts(L) { $('#hearts').textContent = '❤️'.repeat(Math.max(0, L.hearts)) + '🖤'.repeat(3 - Math.max(0, L.hearts)); const h = $('#bossHp'); if (h) h.style.width = (100 * L.hp / 9) + '%'; const n = $('#bossName'); if (n) n.textContent = `👹 Shadow Golem · Phase ${L.phase}/3${L.shield ? ' · 🛡️' : ' · shield DOWN!'}`; if (L.runeOrder) this.nextInd(L); },
   floorCells() { const a = []; for (const row of grid) for (const c of row) if (c.t === '.' && !c.hole) a.push(c); return a; },
   placeRunes(L) {
     L.runeObjs.forEach(o => world.remove(o)); L.runeObjs = []; for (const row of grid) for (const c of row) if (c.rune) { c.rune = null; c.trigger = false; }
@@ -1689,14 +1697,15 @@ NEW.S1,
     const cs = shuffle(this.floorCells().filter(c => c.z >= 2 && c.z <= 7 && Math.abs(c.x - player.x) + Math.abs(c.z - player.z) >= 3)); const used = [];
     for (const c of cs) { if (used.length >= 3) break; if (used.some(u => Math.abs(u.x - c.x) + Math.abs(u.z - c.z) < 3)) continue; used.push(c); }
     L.runeOrder = [...vals].sort((a, b) => a - b); L.runeNext = 0;
-    used.forEach((c, i) => { c.rune = { v: vals[i] }; c.trigger = true; const p = mesh(new THREE.MeshLambertMaterial({ color: '#3b82f6', emissive: '#3b82f6', emissiveIntensity: 0.4 }), wx(c.x), 0.05, wz(c.z), 0.86, 0.1, 0.86); const sg = cardSprite('🔷', labs[i], 0.9); sg.position.set(wx(c.x), 1.25, wz(c.z)); world.add(sg); c.rune.p = p; c.rune.sg = sg; L.runeObjs.push(p, sg); });
+    used.forEach((c, i) => { c.rune = { v: vals[i] }; c.trigger = true; const p = mesh(new THREE.MeshLambertMaterial({ color: '#3b82f6', emissive: '#3b82f6', emissiveIntensity: 0.9 }), wx(c.x), 0.05, wz(c.z), 0.95, 0.14, 0.95); const sg = golemRuneSprite(labs[i], 2.1); sg.position.set(wx(c.x), 1.25, wz(c.z)); world.add(sg); c.rune.p = p; c.rune.sg = sg; L.runeObjs.push(p, sg); });
     L.shield = true; L.shieldObj.visible = true; this.hearts(L);
   },
+  nextInd(L) { let n = $('#golemNext'); if (!n) { n = document.createElement('div'); n.id = 'golemNext'; n.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:4;background:#0a0f2a;color:#fff;border:3px solid #7fe8ff;border-radius:14px;padding:6px 18px;font:900 26px Arial,sans-serif;text-shadow:0 2px 0 #000;pointer-events:none'; document.body.appendChild(n); } n.style.display = L.shield ? '' : 'none'; n.textContent = `🔷 Next: ${['1st (smallest)', '2nd', '3rd (biggest)'][L.runeNext] || ''}`; },
   onEnter(c) {
     if (!c.rune || c.rune.done || !L.shield) return; const D = L.def;
-    if (c.rune.v === L.runeOrder[L.runeNext]) { c.rune.done = true; L.runeNext++; if (L.mins.length) { const m = L.mins.shift(); burst(m.o.position, '#7fd4ff', 14, 2); world.remove(m.o); } c.rune.p.material.color.set('#2fa86b'); c.rune.p.material.emissive.set('#2fa86b'); Sound.tone(500 + L.runeNext * 150, 0.15, 'triangle', 0.2);
+    if (c.rune.v === L.runeOrder[L.runeNext]) { c.rune.done = true; L.runeNext++; if (L.mins.length) { const m = L.mins.shift(); burst(m.o.position, '#7fd4ff', 14, 2); world.remove(m.o); } c.rune.p.material.color.set('#2fa86b'); c.rune.p.material.emissive.set('#2fa86b'); Sound.tone(500 + L.runeNext * 150, 0.15, 'triangle', 0.2); this.nextInd(L);
       if (L.runeNext >= 3) { L.shield = false; L.shieldObj.visible = false; Sound.sfx('gate'); burst(new THREE.Vector3(0, 3, wz(0) - 1.3), '#7fd4ff', 40, 5); say('🛡️💥 SHIELD DOWN! Grab the 🔥 embers and hit it!', 3000); D.hearts(L); setTimeout(() => { L.runeObjs.forEach(o => world.remove(o)); L.runeObjs = []; }, 600); D.spawnOrb(L); }
-    } else { Sound.sfx('wrong'); say('Wrong order! 🔷 Start again: smallest ➜ biggest.', 2500); for (const row of grid) for (const q of row) if (q.rune) { q.rune.done = false; q.rune.p.material.color.set('#3b82f6'); q.rune.p.material.emissive.set('#3b82f6'); } L.runeNext = 0; }
+    } else { Sound.sfx('wrong'); say('Wrong order! 🔷 Start again: smallest ➜ biggest.', 2500); for (const row of grid) for (const q of row) if (q.rune) { q.rune.done = false; q.rune.p.material.color.set('#3b82f6'); q.rune.p.material.emissive.set('#3b82f6'); } L.runeNext = 0; this.nextInd(L); }
   },
   spawnOrb(L) {
     if (L.won || L.shield) return; const cs = this.floorCells().filter(c => !c.ember && !c.rune && Math.abs(c.x - player.x) + Math.abs(c.z - player.z) >= 3 && !(L.warn && L.warn.has(c)));
